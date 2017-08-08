@@ -1,0 +1,14 @@
+@(title: String, greetingForm: Form[Greeting])(implicit request: RequestHeader, messages: Messages)
+@import helper._
+@import components._
+@import com.example.components.BasicComponents
+@main("Welcome") {
+    @well {
+        @form(action = CSRF(routes.GreeterController.greetInForm()), 'class -> "form-horizontal") {
+            @inputText(greetingForm("nick"))
+            @submitButton {
+                <span class="glyphicon glyphicon-log-in" aria-hidden="true"></span>
+            }
+        }
+    }
+}

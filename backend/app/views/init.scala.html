@@ -1,0 +1,21 @@
+@import services.AssetResolver
+@import com.example.model.units.UnitObject._
+@import scala.concurrent.duration._
+@import com.example.components.BasicComponents
+@import play.api.libs.json._
+@import components._
+@import com.example.config.Entry
+@import com.example.model.OwnerId
+@(title: String, assetResolver: AssetResolver, playerId: OwnerId, gameId: OwnerId, idToName: OwnerId => String)(implicit request: RequestHeader, messages: Messages)
+
+@main(title) {
+    @well {
+        <h2>Welcome</h2>
+        <h3>GameId: @{idToName(gameId)}</h3>
+        <h3>PlayerId: @{idToName(playerId)}</h3>
+        <div id="@{BasicComponents.gameArea}"></div>
+        @scalajs.html.scripts("frontend", routes.Assets.versioned(_).toString, name => getClass.getResource(s"/public/$name") != null)
+        <script type="text/javascript" src="@routes.GameController.facadeJs(playerId, gameId)"></script>
+    }
+
+}

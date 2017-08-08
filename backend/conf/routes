@@ -1,0 +1,10 @@
+
+GET        /                             controllers.GreeterController.index
+GET        /channel                      controllers.GameController.gameChannel(playerId: Int, gameId: Int)
+GET        /game                         controllers.GameController.joinGame(gameId: OwnerId)
+GET        /games                        controllers.GameController.openGames
+POST       /greet                        controllers.GreeterController.greetInForm
+
+GET        /assets/tooltip.css           controllers.GameController.tooltipStyles
+GET        /assets/*file                 controllers.Assets.versioned(path="/public", file)
+GET        /facade                       controllers.GameController.facadeJs(playerId: OwnerId, gameId: OwnerId)

@@ -1,0 +1,20 @@
+@import services.game.GameRepository._
+@(title: String, games: Iterable[GameInstance])(implicit request: RequestHeader, messages: Messages)
+@import helper._
+@import components._
+
+@main(title) {
+    @well {
+        <h2>Open games</h2>
+        <table class="table table-bordered">
+            <tr>
+                <th>Owner id:</th>
+            </tr>
+            @for(GameInstance(id, t, _) <- games if t.isInstanceOf[AI]; AI(name) = t) {
+                <tr>
+                    <td><a href="@CSRF(routes.GameController.joinGame(id))">@name</a></td>
+                </tr>
+            }
+        </table>
+    }
+}
