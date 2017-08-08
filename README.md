@@ -7,4 +7,4 @@ It should be now available under localhost:9000.
 
 For now there are only available games versus AI with limitted units and functionalities, more will be added in the future.
 Code needs a lot of refactor, beacuase i was learning technology, designing functionalities and developing at the same time.
-Still i think it show the power of full-stack scala providing time safety and realiable IDE support for style-sheets, scripts etc.
+Still i think it show the power of full-stack scala providing type safety and realiable IDE support for style-sheets, scripts etc.
