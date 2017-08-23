@@ -7,6 +7,8 @@ import com.example.model._
 import models.IdentifiedCommand
 import GameHandler._
 import GameRepository._
+import com.example.model.GameResponse.GameEnded
+
 import scala.language.implicitConversions
 
 class GameRepository(gameConfig: GameConfig) {
@@ -20,18 +22,20 @@ class GameRepository(gameConfig: GameConfig) {
         case Left(OpenGamesRequest(replyTo)) =>
           replyTo ! games.values
           Actor.same
-        case Right(e@CreateEvent(id, gameType, _)) =>
+        case Right(CreateEvent(id, gameType, ref)) =>
           val updatedGames = games.updated(id, {
             lazy val ch = new PlayerCommandHandler(gameConfig, gameConfig.instanceIdFactory)
             lazy val gh = new GameHandler(ch, gameConfig)
-            val r = ctx.spawn(gh.behavior, s"${classOf[GameHandler].getSimpleName}-${games.size}")
+            val r = ctx.spawn(gh.behavior(id, ref), s"${classOf[GameHandler].getSimpleName}-${id.id}")
             GameInstance(id, gameType, r)
           })
-          updatedGames(id).ref ! e
           behavior(updatedGames)
-        case Right(e@JoinEvent(ownerId, _, _)) =>
-          val nextRef = games(ownerId)
-          nextRef ! e
+        case Right(e@JoinEvent(ownerId, _, ref)) =>
+          val nextRef = games.get(ownerId)
+          nextRef.foreach(_ ! e)
+          if (nextRef.isEmpty) {
+            ref ! GameEnded
+          }
           Actor.same
         case Right(e@LeaveEvent(id)) =>
           games.get(id).foreach(_ ! e)

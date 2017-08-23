@@ -14,14 +14,19 @@ import services.game.GameRepository.{GameType, NotUsed}
 import scala.collection.SortedSet
 import scala.concurrent.duration._
 import scala.language.implicitConversions
+import scala.util.Random
 class GameHandler(commandHandler: PlayerCommandHandler, config: GameConfig) extends UnitHandler {
   private val logger = play.Logger.of(classOf[GameHandler])
 
-  private def startGame: Behavior[GameEvent] = Actor.immutable { (_, msg) =>
+  private def startGame(id: OwnerId, respondTo: UnsafeActorRef[LobbyMessage]): Behavior[GameEvent] = Actor.immutable { (_, msg) =>
     msg match {
-      case CreateEvent(key, _,  ref) =>
-        val state = OnePlayerJoined(key)
+      case JoinEvent(_, playerId, ref) =>
+        val state = OnePlayerJoined(playerId)
+        respondTo ! LobbyMessage.Started
         initializeGame(ref, state)
+      case LeaveEvent(_) =>
+        respondTo ! LobbyMessage.Canceled
+        Actor.stopped
       case c =>
         logger.error(s"Invalid state of game handler: Game not started but received: $c")
         Actor.stopped
@@ -38,8 +43,8 @@ class GameHandler(commandHandler: PlayerCommandHandler, config: GameConfig) exte
         case LeaveEvent(_) =>
           Actor.stopped
         case c =>
-          logger.error(s"Game created but not started, but received: $c")
-          Actor.stopped
+          ctx.schedule(1.milli, ctx.self, c)
+          Actor.same
       }
     }
 
@@ -70,13 +75,22 @@ class GameHandler(commandHandler: PlayerCommandHandler, config: GameConfig) exte
       }
 
   private def addIncome(state: Ongoing): Ongoing = {
-    val p1Units = state.units.valuesIterator.flatten.filter(_.ownerId == state.player1)
-    val p1GoldMultiplier = p1Units.map(i => BigDecimal(i.x) / config.width * 2).sum / (p1Units.size + 1) * math.log(p1Units.size + 2)
-    val p2Units = state.units.valuesIterator.flatten.filter(_.ownerId == state.player2)
-    val p2GoldMultiplier = p2Units.map(i => BigDecimal(config.width - i.x) / config.width * 2).sum / (p1Units.size + 1) * math.log(p1Units.size + 2)
+    val p1Units = state.units.valuesIterator.flatten.filter(_.ownerId == state.player1).toList
+    val p1IncomePerUnit = p1Units.map { i =>
+      if (i.x < config.width * 2 / 3) config.goldIncome
+      else if (i.x < config.width / 2) 2 * config.goldIncome
+      else 4 * config.goldIncome
+    }.sum / (p1Units.size + 1) + config.goldIncome
+
+    val p2Units = state.units.valuesIterator.flatten.filter(_.ownerId == state.player2).toList
+    val p2IncomePerUnit = p2Units.map { i =>
+      if (i.x > config.width * 1 / 3) config.goldIncome
+      else if (i.x > config.width / 2) 2 * config.goldIncome
+      else 4 * config.goldIncome
+    }.sum / (p2Units.size + 1) + config.goldIncome
     state.copy(
-      player1State = state.player1State.withGold(_ + (p1GoldMultiplier * gameConfig.goldIncome).intValue()),
-      player2State = state.player2State.withGold(_ + (p2GoldMultiplier * gameConfig.goldIncome).intValue())
+      player1State = state.player1State.withGold(_ + p1IncomePerUnit),
+      player2State = state.player2State.withGold(_ + p2IncomePerUnit)
     )
   }
 
@@ -111,7 +125,7 @@ class GameHandler(commandHandler: PlayerCommandHandler, config: GameConfig) exte
     resp.instances.map(i => i.copy(x = config.width - i.x))
   )
 
-  def behavior: Behavior[GameEvent] = startGame
+  def behavior(id: OwnerId, lobbyRef: UnsafeActorRef[LobbyMessage]): Behavior[GameEvent] = startGame(id, lobbyRef)
 
   override val gameConfig: GameConfig = config
 
@@ -134,7 +148,7 @@ object GameHandler {
 
 
   sealed trait GameEvent
-  final case class CreateEvent(id: OwnerId, gameType: GameType = NotUsed, ref: UnsafeActorRef[GameResponse]) extends GameEvent
+  final case class CreateEvent(id: OwnerId, gameType: GameType = NotUsed, ref: UnsafeActorRef[LobbyMessage]) extends GameEvent
   final case class JoinEvent(id: OwnerId, playerId: OwnerId, ref: UnsafeActorRef[GameResponse]) extends GameEvent
   final case class LeaveEvent(id: OwnerId) extends GameEvent
   final case class CommandEvent(command: IdentifiedCommand) extends GameEvent

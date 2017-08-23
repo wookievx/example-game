@@ -7,6 +7,7 @@ import boopickle.Default._
 import com.example.model._
 import ServerConnector._
 import com.example.model.GameResponse._
+import com.example.util._
 import monix.execution.Ack.Continue
 import monix.execution.Cancelable
 import monix.reactive._
@@ -22,6 +23,7 @@ import scala.scalajs.js.typedarray.{ArrayBuffer, TypedArrayBuffer}
 import monix.execution.Scheduler.Implicits.global
 import monix.reactive.observables.ConnectableObservable
 
+import js.Dynamic.{global => g}
 import scala.collection.immutable.Queue
 
 trait ServerConnector extends Connector with Configuration {
@@ -101,12 +103,11 @@ trait ServerConnector extends Connector with Configuration {
 object ServerConnector {
 
   trait Configuration { self: Connector =>
-    def method: String
-
     def protocol: String = if (window.location.protocol == "https:") "wss" else "ws"
 
     def wsAddress: String = {
-      val tmp = s"$protocol://${window.location.host}/$method?playerId=${playerID.id}&gameId=${gameID.id}"
+      val call: PlayCall = g.jsRoutes.controllers.GameController.gameChannel(playerID.id, gameID.id)
+      val tmp = call.webSocketURL
       println(tmp)
       tmp
     }

@@ -2,7 +2,7 @@
 @(title: String, games: Iterable[GameInstance])(implicit request: RequestHeader, messages: Messages)
 @import helper._
 @import components._
-
+@import com.example.components.BasicComponents
 @main(title) {
     @well {
         <h2>Open games</h2>
@@ -10,11 +10,17 @@
             <tr>
                 <th>Owner id:</th>
             </tr>
-            @for(GameInstance(id, t, _) <- games if t.isInstanceOf[AI]; AI(name) = t) {
+            @for(GameInstance(id, t, _) <- games) {
                 <tr>
-                    <td><a href="@CSRF(routes.GameController.joinGame(id))">@name</a></td>
+                    <td><a href="@CSRF(routes.GameController.joinGame(id))">@{t.name}</a></td>
                 </tr>
             }
         </table>
+        @form(action = CSRF(routes.GameController.createGame())) {
+            @submitButton {
+                "Create game"
+            }
+        }
+
     }
 }

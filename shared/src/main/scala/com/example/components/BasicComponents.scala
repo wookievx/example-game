@@ -6,4 +6,5 @@ object BasicComponents {
   val passwordField: String = "password-field"
   val submitButton: String = "submit-button"
   val gameArea: String = "game-area"
+  val lobbyArea: String = "lobby-area"
 }

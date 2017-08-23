@@ -1,20 +1,19 @@
 package com.example
 
-import java.nio.ByteBuffer
 
 import boopickle.Default._
 import com.example.components.BasicComponents
 import com.example.config.Entry
 import com.example.core.MainFrame
-import com.example.model._
 import com.example.model.Command._
 import com.example.model.GameResponse._
-import SpecificResponse._
+import com.example.model.SpecificResponse._
+import com.example.model._
 import com.example.model.units.UnitObject
 import com.example.net.ServerConnector
 import com.example.ui.UiDefinitions
 import com.example.ui.draw.ImageModule
-import monix.execution.Cancelable
+import com.example.util._
 import org.scalajs.dom
 import org.scalajs.dom.html.Canvas
 
@@ -22,11 +21,10 @@ import scala.collection.mutable.{Seq => MSeq}
 import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
+import scala.scalajs.js.Dynamic.{global => g}
 import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
-import scala.scalajs.js.timers.SetIntervalHandle
 import scala.util.{Failure, Success}
 import scalatags.JsDom.all._
-import scala.scalajs.js.typedarray._
 
 abstract class WarGame(availableUnits: MSeq[UnitObject],
                        val imageModule: ImageModule,
@@ -74,7 +72,7 @@ abstract class WarGame(availableUnits: MSeq[UnitObject],
 
 
   private def showErrorPopup(response: SpecificResponse): Future[Unit] = Future.successful {
-    dom.window.alert(s"Game error: $response")
+//    dom.window.alert(s"Game error: $response")
   }
 
   private def createUnit(selectedUnit: UnitObject): Unit = {
@@ -100,6 +98,8 @@ abstract class WarGame(availableUnits: MSeq[UnitObject],
 
   override def endGame(): Unit = {
     dom.window.alert("Game ended!")
+    val call: PlayCall = g.jsRoutes.controllers.GameController.reset()
+    dom.window.location.href = call.url
   }
 }
 
@@ -144,9 +144,7 @@ object WarGame {
       imageModule,
       (dom.window.innerWidth / 2).toInt,
       (dom.window.innerHeight / 2).toInt,
-      width, lanes, playerId.toOwnerId, gameOwner.toOwnerId, PlayerState(baseHealth = state.baseHealth, gold = state.gold)) {
-      override def method: String = "channel"
-    }
+      width, lanes, playerId.toOwnerId, gameOwner.toOwnerId, PlayerState(baseHealth = state.baseHealth, gold = state.gold)) {}
     game.initialize()
   }
 

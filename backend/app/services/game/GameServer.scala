@@ -1,6 +1,8 @@
 package services.game
 
+import akka.actor.Props
 import akka.typed.scaladsl.Actor
+import akka.actor.{Actor => UnsafeActor}
 import akka.typed.{ActorRef, ActorSystem, Behavior, Terminated}
 import com.example.config.GameConfig
 import com.example.model.OwnerId
@@ -14,6 +16,12 @@ class GameServer(nameService: NameService, gameConfig: GameConfig, utilSystem: a
 
   import gameConfig._
 
+  private val sinkRef = utilSystem.actorOf(Props(new UnsafeActor {
+    override def receive: Receive = {
+      case _ =>
+    }
+  }))
+
   private def behavior: Behavior[GameMessage] = Actor.deferred { ctx =>
     val gameRepository = new GameRepository(gameConfig)
     val gameRepositoryRef = ctx.spawn(gameRepository.behavior(Map.empty), "game-repository")
@@ -25,14 +33,15 @@ class GameServer(nameService: NameService, gameConfig: GameConfig, utilSystem: a
         val aiName = s"AI-{${id.id}}"
         val ref = ctx.spawn(new AiAdapter(gameConfig, gameRepositoryRef).mainBehavior(id), s"ai-wrapper:${id.id}")
         ctx.watch(ref)
-        gameRepositoryRef ! CreateEvent(id, AI(aiName), ref.toNarrowingActor(Left(_)))
+        gameRepositoryRef ! CreateEvent(id, AI(aiName), sinkRef)
+        gameRepositoryRef ! JoinEvent(id, id, ref.toNarrowingActor(Left(_)))
         nameService.save(id, aiName)
         ai + (id -> ref)
       }
 
       msg match {
-        case Right(CreateEvent(id, _, ref)) =>
-          gameRepositoryRef ! CreateEvent(id, Normal(s"game-${id.id}"), ref)
+        case Right(CreateEvent(id, gt, ref)) =>
+          gameRepositoryRef ! CreateEvent(id, gt, ref)
           defaultServerBehavior(nextAI)
         case Right(JoinEvent(ownerId, playerId, ref)) =>
           nextAI.get(ownerId).foreach(_ ! StartGame(ownerId, playerId, ref).toRight)

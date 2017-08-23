@@ -6,7 +6,7 @@ import com.example.model.OwnerId.OwnerIdFactory
 import com.example.model.units.{InstanceID, UnitObject}
 import com.example.model.units.InstanceID.InstanceIDFactory
 import com.example.model.units.UnitObject.{Archer, Swordsman, Wizard}
-import controllers.{GameController, GreeterController}
+import controllers.{GameController, GreeterController, MiscController}
 import play.api.i18n.Langs
 import play.api.mvc.ControllerComponents
 import services.game.{GameRepository, GameServer}
@@ -26,6 +26,7 @@ trait GameModule extends ServicesModule {
   lazy val instanceIDFactory: InstanceIDFactory = InstanceID.defaultFactory
   lazy val ownerIdFactory: OwnerIdFactory = OwnerId.defaultFactory
   lazy val gameController: GameController = wire[GameController]
+  lazy val miscController: MiscController = wire[MiscController]
 
   lazy val gameConfig = new GameConfig {
     override def baseHealth: Int = 10000
